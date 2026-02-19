@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import  { Event }  from "../models";
+import { Event } from "../models";
 
 export const seedData = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -69,7 +69,7 @@ export const seedData = async (req: Request, res: Response): Promise<void> => {
         attendees: ["Chris", "John"],
       },
     ]);
-    
+
     res.status(201).json({
       message: "Event seed data created successfully",
       eventsCreated: events.length,
@@ -86,34 +86,96 @@ export const getAllEvents = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  	try {
-      const events = await Event.find();
-      res.json({ count: events.length, events });
-    } catch (error: any) {
-      res
-        .status(500)
-        .json({ message: "Error fetching posts", error: error.message });
+  try {
+    const filter: any = {};
+    // Add category filter only if provided
+    if (req.query.category) {
+      filter.category = req.query.category;
     }
+    // Add date filter only if provided
+    if (req.query.date) {
+      filter.date = { $gte: new Date(req.query.date as string) };
+    }
+    const events = await Event.find(filter);
+    res.status(200).json({
+      count: events.length,
+      events,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      message: "Error fetching events",
+      error: error.message,
+    });
+  }
 };
 
 export const getEventById = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      res.status(404).json({ message: "Event not found" });
+      return;
+    }
+    res.json(event);
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: "Error fetching events", error: error.message });
+  }
 };
 
 export const createEvent = async (
   req: Request,
   res: Response,
-): Promise<void> => {};
+): Promise<void> => {
+  try {
+    const event = await Event.create(req.body);
+    res.status(201).json({ message: "event created successfully", event });
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: "Error creating event", error: error.message });
+  }
+};
 
 export const updateEvent = async (
   req: Request,
   res: Response,
-): Promise<void> => {};
+): Promise<void> => {
+  try {
+    const event = await Event.findByIdAndUpdate(req.params.id, req.body, {
+      new: true, // Return updated document
+      runValidators: true, // Run schema validation
+    });
+    if (!event) {
+      res.status(404).json({ message: "Event not found" });
+      return;
+    }
+    res.status(200).json({ message: "Event updated successfully", event });
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: "Error updating event", error: error.message });
+  }
+};
 
 export const deleteEvent = async (
   req: Request,
   res: Response,
-): Promise<void> => {};
+): Promise<void> => {
+  try {
+    const event = await Event.findByIdAndDelete(req.params.id);
+    if (!event) {
+      res.status(404).json({ message: "Event not found" });
+      return;
+    }
+    res.status(200).json({ message: "Event deleted successfully", event });
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: "Error updating event", error: error.message });
+  }
+};
