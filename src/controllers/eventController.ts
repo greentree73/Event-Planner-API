@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Event } from "../models";
+import mongoose from "mongoose";
 
 export const seedData = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -114,11 +115,16 @@ export const getEventById = async (
   res: Response,
 ): Promise<void> => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id as string)) {
+      res.status(400).json({ message: "Invalid event ID" });
+      return;
+    }
     const event = await Event.findById(req.params.id);
     if (!event) {
       res.status(404).json({ message: "Event not found" });
       return;
     }
+    
     res.json(event);
   } catch (error: any) {
     res
@@ -132,6 +138,19 @@ export const createEvent = async (
   res: Response,
 ): Promise<void> => {
   try {
+    const allowedCategories = ["Meeting", "Conference", "Personal", "Workshop", "Other"];
+    if (!req.body.title || !req.body.date) {
+      res.status(400).json({
+        message: "title and date are required fields",
+      });
+      return;
+    }
+     if (!allowedCategories.includes(req.body.category)) {
+       res.status(400).json({
+         message: "Invalid category value",
+       });
+       return;
+     }
     const event = await Event.create(req.body);
     res.status(201).json({ message: "event created successfully", event });
   } catch (error: any) {
